@@ -77,15 +77,15 @@ class PHPWord_Template {
     /**
      * Set a Template value
      * 
-     * @param mixed $search
-     * @param mixed $replace
+     * @param string $search
+     * @param string $replace
      */
     public function setValue($search, $replace) {
         if(substr($search, 0, 2) !== '${' && substr($search, -1) !== '}') {
             $search = '${'.$search.'}';
         }
         
-        if(!is_array($replace)) {
+        if(mb_detect_encoding($replace, mb_detect_order(), true) !== 'UTF-8') {
             $replace = utf8_encode($replace);
         }
         
