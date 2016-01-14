@@ -106,6 +106,41 @@ class PHPWord_Writer_Word2007_Document extends PHPWord_Writer_Word2007_Base {
 		// Return
 		return $objWriter->getData();
 	}
+
+	public function getObjectAsText($element){
+
+		if($this->getParentWriter()->getUseDiskCaching()) {
+			$objWriter = new PHPWord_Shared_XMLWriter(PHPWord_Shared_XMLWriter::STORAGE_DISK, $this->getParentWriter()->getDiskCachingDirectory());
+		} else {
+			$objWriter = new PHPWord_Shared_XMLWriter(PHPWord_Shared_XMLWriter::STORAGE_MEMORY);
+		}
+		if($element instanceof PHPWord_Section_Text) {
+			$this->_writeText($objWriter, $element);
+		} elseif($element instanceof PHPWord_Section_TextRun) {
+			$this->_writeTextRun($objWriter, $element);
+		} elseif($element instanceof PHPWord_Section_Link) {
+			$this->_writeLink($objWriter, $element);
+		} elseif($element instanceof PHPWord_Section_Title) {
+			$this->_writeTitle($objWriter, $element);
+		} elseif($element instanceof PHPWord_Section_TextBreak) {
+			$this->_writeTextBreak($objWriter);
+		} elseif($element instanceof PHPWord_Section_PageBreak) {
+			$this->_writePageBreak($objWriter);
+		} elseif($element instanceof PHPWord_Section_Table) {
+			$this->_writeTable($objWriter, $element);
+		} elseif($element instanceof PHPWord_Section_ListItem) {
+			$this->_writeListItem($objWriter, $element);
+		} elseif($element instanceof PHPWord_Section_Image ||
+			$element instanceof PHPWord_Section_MemoryImage) {
+			$this->_writeImage($objWriter, $element);
+		} elseif($element instanceof PHPWord_Section_Object) {
+			$this->_writeObject($objWriter, $element);
+		} elseif($element instanceof PHPWord_TOC) {
+			$this->_writeTOC($objWriter);
+		}
+		return trim(preg_replace("/[\x1-\x8\xB-\xC\xE-\x1F-\t+]/", "", $objWriter->getData()));
+
+	}
 	
 	private function _writeSection(PHPWord_Shared_XMLWriter $objWriter = null, PHPWord_Section $section) {
 		$objWriter->startElement('w:p');
