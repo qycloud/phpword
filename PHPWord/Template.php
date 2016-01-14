@@ -111,5 +111,9 @@ class PHPWord_Template {
         
         rename($this->_tempFileName, $strFilename);
     }
+
+    public function appendXMLText($xmlString) {
+        $this->_documentXML = str_replace('</w:body>', $xmlString.'</w:body>', $this->_documentXML);
+    }
 }
 ?>
