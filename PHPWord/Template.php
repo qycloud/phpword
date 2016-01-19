@@ -56,6 +56,12 @@ class PHPWord_Template {
      */
     private $_documentXML;
 
+    /**
+     * Style XML
+     *
+     * @var string
+     */
+    private $_styleXML;
 
     /**
      * Create a new Template Object
@@ -72,6 +78,7 @@ class PHPWord_Template {
         $this->_objZip->open($this->_tempFileName);
 
         $this->_documentXML = $this->_objZip->getFromName('word/document.xml');
+        $this->_styleXML = $this->_objZip->getFromName('word/styles.xml');
     }
 
     /**
@@ -103,6 +110,7 @@ class PHPWord_Template {
         }
 
         $this->_objZip->addFromString('word/document.xml', $this->_documentXML);
+        $this->_objZip->addFromString('word/styles.xml', $this->_styleXML);
 
         // Close zip file
         if($this->_objZip->close() === false) {
@@ -142,7 +150,7 @@ class PHPWord_Template {
      */
     public function appendXMLStyle($xmlString) {
 
-        $styleXML = $this->_objZip->getFromName('word/styles.xml');
+        $styleXML = $this->_styleXML;
 
         //从$xmlString获取样式
         $orgdoc = new DOMDocument;
@@ -159,11 +167,11 @@ class PHPWord_Template {
             $newdoc->documentElement->appendChild($node);
         }
 
-        $this->_objZip->addFromString('word/styles.xml', str_replace(
+        $this->_styleXML = str_replace(
             ["\r\n", "\r", "\n"],
             '',
             $newdoc->saveXML()
-        ));
+        );
 
     }
 }
