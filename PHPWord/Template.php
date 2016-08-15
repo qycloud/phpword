@@ -100,6 +100,43 @@ class PHPWord_Template {
     }
 
     /**
+     * Set a Template XML
+     *
+     * @param string $search
+     * @param string $replace (Must be legitimate XML string)
+     */
+    public function setValueExtend($search, $replace) {
+        if(substr($search, 0, 2) !== '${' && substr($search, -1) !== '}') {
+            $search = '${'.$search.'}';
+        }
+
+        if(mb_detect_encoding($replace, mb_detect_order(), true) !== 'UTF-8') {
+            $replace = utf8_encode($replace);
+        }
+
+        $replace = str_replace(["\r\n", "\r", "\n"], '', $replace);
+
+        $document = new DOMDocument();
+        $document->loadXML($this->_documentXML);
+        $xpath = new DomXPath($document);
+
+        $wBody = $xpath->query('//w:body');
+        $wP = $xpath->query('//w:p[descendant::* = "' . $search . '"]');
+        $wTemplate = simplexml_load_string(
+            '<w:template xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' . $replace . '</w:template>'
+        )->xpath('//w:template/child::*[position()=1]');
+
+        if (!$wBody->length || !$wP->length || !count($wTemplate)) {
+            return False;
+        }
+
+        $element = $document->importNode(dom_import_simplexml($wTemplate[0]), true);
+        $wBody->item(0)->replaceChild($element, $wP->item(0));
+
+        $this->_documentXML = $document->saveXML();
+    }
+
+    /**
      * Save Template
      *
      * @param string $strFilename
