@@ -124,7 +124,7 @@ class PHPWord_Template {
 
         $tagPos = strpos($this->_documentXML, $search);
         if (!$tagPos) {
-            //throw new Exception("Can not clone row, template variable not found or variable contains markup.");
+            return false;
         }
 
         $rowStart = $this->findRowStart($tagPos);
