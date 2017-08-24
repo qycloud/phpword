@@ -129,6 +129,10 @@ class PHPWord_Template {
 
         $rowStart = $this->findRowStart($tagPos);
         $rowEnd = $this->findRowEnd($tagPos);
+        if ($rowStart === false || $rowEnd === false) {
+            return false;
+        }
+
         $xmlRow = $this->getSlice($rowStart, $rowEnd);
 
         if (preg_match('#<w:vMerge w:val="restart"/>#', $xmlRow)) {
@@ -194,7 +198,7 @@ class PHPWord_Template {
             $rowStart = strrpos($this->_documentXML, '<w:tr>', ((strlen($this->_documentXML) - $offset) * -1));
         }
         if (!$rowStart) {
-            //throw new Exception('Can not find the start position of the row to clone.');
+            //其他匹配规则
         }
 
         return $rowStart;
