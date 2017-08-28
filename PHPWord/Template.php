@@ -129,7 +129,7 @@ class PHPWord_Template {
 
         $rowStart = $this->findRowStart($tagPos);
         $rowEnd = $this->findRowEnd($tagPos);
-        if ($rowStart === false || $rowEnd === false) {
+        if ($rowStart === false || $rowEnd === 7) {
             return false;
         }
 
