@@ -74,7 +74,11 @@ class PHPWord_Template {
         $toAdd = $toAddImg = $toAddType = '';
 
         foreach($replace as $img){
-            $imgExt = substr($img['src'], strrpos($img['src'], '.')+1);
+            if (isset($img['imgExt'])) {
+                $imgExt = $img['imgExt'];
+            } else {
+                $imgExt = substr($img['src'], strrpos($img['src'], '.')+1);
+            }
             if (strtolower($imgExt) === 'jpg') {
                 $imgExt = 'jpeg';
             }
