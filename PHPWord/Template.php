@@ -16,11 +16,13 @@ class PHPWord_Template {
     private $_tempFileName;
     private $_documentXML;
 
-    private $_header1XML;
-    private $_footer1XML;
+    private $_headerXMLArr;
+    private $_footerXMLArr;
     private $_rels;
     private $_types;
     private $_countRels;
+    private $_customXML;
+    private $_hFDirArr;
 
     /**
      * 初始化Word模板
@@ -34,18 +36,34 @@ class PHPWord_Template {
 
         $this->_objZip = new ZipArchive();
         $this->_objZip->open($this->_tempFileName);
-
         $this->_documentXML = $this->fixBrokenMacros($this->_objZip->getFromName('word/document.xml'));
-
-        $this->_header1XML  = $this->_objZip->getFromName('word/header1.xml');
-        $this->_footer1XML  = $this->_objZip->getFromName('word/footer1.xml');
         $this->_rels        = $this->_objZip->getFromName('word/_rels/document.xml.rels');
         $this->_types       = $this->_objZip->getFromName('[Content_Types].xml');
+        $this->_customXML   = $this->_objZip->getFromName('docProps/custom.xml');
         $this->_countRels   = substr_count($this->_rels, 'Relationship') - 1;
+
+        //页眉文件读取
+        $this->getPageHeaderAndFooterXml($this->_tempFileName); //页眉和页脚存在多个XML
+        if (isset($this->_hFDirArr['header'])) {
+            foreach ($this->_hFDirArr['header'] as $key => $headerDir) {
+                $this->_headerXMLArr[$key]  = $this->_objZip->getFromName($headerDir);
+            }
+        } else {
+            $this->_headerXMLArr[0]  = $this->_objZip->getFromName('word/header1.xml');
+        }
+
+        //页脚文件读取
+        if (isset($this->_hFDirArr['footer'])) {
+            foreach ($this->_hFDirArr['footer'] as $key => $footerDir) {
+                $this->_footerXMLArr[$key]  = $this->_objZip->getFromName($footerDir);
+            }
+        } else {
+            $this->_footerXMLArr[0]  = $this->_objZip->getFromName('word/footer1.xml');
+        }
     }
 
     /**
-     * 标签替换为文本
+     * 标签替换为文本 - 文档主体
      * @param string $search
      * @param string $replace
      */
@@ -57,9 +75,32 @@ class PHPWord_Template {
         }
 
         $this->_documentXML = str_replace($search, $replace, $this->_documentXML);
+    }
 
-        $this->_header1XML = str_replace($search, $replace, $this->_header1XML);
-        $this->_footer1XML = str_replace($search, $replace, $this->_footer1XML);
+    /**
+     * 标签替换为文本 - 页眉页脚
+     * @param string $search
+     * @param string $replace
+     * @param string $type - 类别: header OR footer
+     */
+    public function setHeaderAndFooterValue($search, $replace, $type) {
+        $search = $this->lable($search);
+
+        if(mb_detect_encoding($replace, mb_detect_order(), true) !== 'UTF-8') {
+            $replace = utf8_encode($replace);
+        }
+
+        if ($type == 'header') {
+            foreach ($this->_headerXMLArr as $key => $item) {
+                $this->_headerXMLArr[$key] = str_replace($search, $replace, $item);
+            }
+        }
+
+        if ($type == 'footer') {
+            foreach ($this->_footerXMLArr as $key => $item) {
+                $this->_footerXMLArr[$key] = str_replace($search, $replace, $item);
+            }
+        }
     }
 
     /**
@@ -180,11 +221,27 @@ class PHPWord_Template {
         }
 
         $this->_objZip->addFromString('word/document.xml', $this->_documentXML);
-
-        $this->_objZip->addFromString('word/header1.xml', $this->_header1XML);
-        $this->_objZip->addFromString('word/footer1.xml', $this->_footer1XML);
         $this->_objZip->addFromString('word/_rels/document.xml.rels', $this->_rels);
         $this->_objZip->addFromString('[Content_Types].xml', $this->_types);
+        $this->_objZip->addFromString('docProps/custom.xml', $this->_customXML);
+
+        //页眉文件读取
+        if (isset($this->_hFDirArr['header'])) {
+            foreach ($this->_hFDirArr['header'] as $key => $headerDir) {
+                $this->_objZip->addFromString($headerDir, $this->_headerXMLArr[$key]);
+            }
+        } else {
+            $this->_objZip->addFromString('word/header1.xml', $this->_headerXMLArr[0]);
+        }
+
+        //页脚文件读取
+        if (isset($this->_hFDirArr['footer'])) {
+            foreach ($this->_hFDirArr['footer'] as $key => $footerDir) {
+                $this->_objZip->addFromString($footerDir, $this->_footerXMLArr[$key]);
+            }
+        } else {
+            $this->_objZip->addFromString('word/footer1.xml', $this->_footerXMLArr[0]);
+        }
 
         // Close zip file
         if($this->_objZip->close() === false) {
@@ -248,5 +305,43 @@ class PHPWord_Template {
 
     private function formatToXml($str) {
         return str_replace(['&', '<', '>', "\n"], ['&amp;', '&lt;', '&gt;', "\n".'<w:br/>'], $str);
+    }
+
+    /**
+     *  获取页眉 - 页脚
+     * @param string $fileDir - 文件路径
+     * @return array
+     */
+    public function getPageHeaderAndFooterXml($fileDir)
+    {
+        $this->_hFDirArr = []; //页眉和页脚文件路径
+        $zip = zip_open($fileDir);
+        if ($zip) {
+            while ($zip_entry = zip_read($zip)) {
+                if (stripos(zip_entry_name($zip_entry), 'word/header') !== false) {
+                    $this->_hFDirArr['header'][] = zip_entry_name($zip_entry);
+                }
+
+                if (stripos(zip_entry_name($zip_entry), 'word/footer') !== false) {
+                    $this->_hFDirArr['footer'][] = zip_entry_name($zip_entry);
+                }
+            }
+            zip_close($zip);
+        }
+    }
+
+    /**
+     * 获取 customXML - 文件属性
+     */
+    public function getCustomXML() {
+        return $this->_customXML;
+    }
+
+    /**
+     * 设置 customXML - 文件属性
+     * @param string $customXML
+     */
+    public function setCustomXML($customXML) {
+        $this->_customXML = $customXML;
     }
 }
