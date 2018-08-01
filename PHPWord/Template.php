@@ -203,7 +203,7 @@ class PHPWord_Template {
 
         $result = $this->getSlice(0, $rowStart);
         for ($i = 0; $i <= $numberOfClones; $i++) {
-            $result .= preg_replace('/\$\{(.*?)\}/', '\${\\1#' . $i . '}', $xmlRow);
+            $result .= preg_replace('/\${([^#]*?)\}/', '\${\1#' . $i . '}', $xmlRow);
         }
         $result .= $this->getSlice($rowEnd);
 
