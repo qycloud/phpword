@@ -78,6 +78,21 @@ class PHPWord_Template {
     }
 
     /**
+     * 标签替换为文本 - 文档主体 - 批量高性能模式
+     * @param array $searchReplace 一维键值数组 ['t#0' => 'a', 't#1' => 'b', ...]
+     */
+    public function setValues($searchReplace) {
+        $replacePairs = [];
+        foreach ($searchReplace as $search => $replace) {
+            if (mb_detect_encoding($replace, mb_detect_order(), true) !== 'UTF-8') {
+                $replace = utf8_encode($replace);
+            }
+            $replacePairs[$this->lable($search)] = $replace;
+        }
+        $this->_documentXML = strtr($this->_documentXML, $replacePairs);
+    }
+
+    /**
      * 标签替换为文本 - 页眉页脚
      * @param string $search
      * @param string $replace
