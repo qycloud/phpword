@@ -226,6 +226,77 @@ class PHPWord_Template {
     }
 
     /**
+     * 根据标签克隆当前标签所在的整个表格行
+     * @param array $fieldLabels
+     * @param int $numberOfClones
+     * @return bool
+     */
+    public function cloneRowByFieldLabels($fieldLabels, $numberOfClones)
+    {
+        $fieldLocalArr = [];
+        $needJumpFieldLabels = [];
+        foreach ($fieldLabels as $fieldLabel) {
+            //因为是整行复制，故避免重复操作
+            if (in_array($fieldLabel, $needJumpFieldLabels)) continue;
+
+            //获取字符label位置
+            $search = $this->lable($fieldLabel);
+            $tagPos = strpos($this->_documentXML, $search);
+            if (!$tagPos) continue;
+
+            //获取 fieldLabel 对应的开始-结束的位置
+            $rowStart = $this->findRowStart($tagPos);
+            $rowEnd = $this->findRowEnd($tagPos);
+            if ($rowStart === false || $rowEnd === 7) continue;
+
+            //深度处理 - 对应的开始-结束的位置
+            $xmlRow = $this->getSlice($rowStart, $rowEnd);
+            if (preg_match('#<w:vMerge w:val="restart"/>#', $xmlRow)) {
+                $extraRowEnd = $rowEnd;
+                while (true) {
+                    $extraRowStart = $this->findRowStart($extraRowEnd + 1);
+                    $extraRowEnd = $this->findRowEnd($extraRowEnd + 1);
+                    if ($extraRowEnd < 7) break;
+                    $tmpXmlRow = $this->getSlice($extraRowStart, $extraRowEnd);
+                    if (!preg_match('#<w:vMerge/>#', $tmpXmlRow) &&
+                        !preg_match('#<w:vMerge w:val="continue" />#', $tmpXmlRow)) {
+                        break;
+                    }
+
+                    $rowEnd = $extraRowEnd;
+                }
+                $xmlRow = $this->getSlice($rowStart, $rowEnd);
+            }
+
+            preg_match_all('/\${([^#]*?)\}/', $xmlRow, $match);
+            if (!empty($match[1])) $needJumpFieldLabels = array_merge($needJumpFieldLabels, $match[1]);
+            $fieldLocalArr[] = ['s' => $rowStart, 'e' => $rowEnd];
+        }
+
+        if (!empty($fieldLocalArr)) {
+            $startArr = array_column($fieldLocalArr, 's');
+            array_multisort($startArr, SORT_ASC, $fieldLocalArr);
+
+            //数据XML拼装
+            $result = $this->getSlice(0, $fieldLocalArr[0]['s']);
+            for ($i = 0; $i <= $numberOfClones; $i++) {
+                foreach ($fieldLocalArr as $key => $fieldLocal) {
+                    $xmlRow = $this->getSlice($fieldLocal['s'], $fieldLocal['e']);
+                    $result .= preg_replace('/\${([^#]*?)\}/', '\${\1#' . $i . '}', $xmlRow);
+                    if (isset($fieldLocalArr[$key + 1]) && $fieldLocal['e'] < $fieldLocalArr[$key + 1]['s']) {
+                        $result .= $this->getSlice($fieldLocal['e'], $fieldLocalArr[$key + 1]['s']);
+                    }
+                }
+            }
+            $lastFieldLocal = end($fieldLocalArr);
+            $result .= $this->getSlice($lastFieldLocal['e']);
+            $this->_documentXML = $result;
+        }
+
+
+    }
+
+    /**
      * 保存模板
      * @param string $strFilename
      * @throws Exception
