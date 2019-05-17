@@ -182,13 +182,14 @@ class PHPWord_Template {
     {
         $search = $this->lable($search);
 
-        $tagPos = strpos($this->_documentXML, $search);
-        if (!$tagPos) {
+        $tagPosStart = strpos($this->_documentXML, $search);
+        $tagPosEnd = strrpos($this->_documentXML, $search);
+        if (!$tagPosStart || !$tagPosEnd) {
             return false;
         }
 
-        $rowStart = $this->findRowStart($tagPos);
-        $rowEnd = $this->findRowEnd($tagPos);
+        $rowStart = $this->findRowStart($tagPosStart);
+        $rowEnd = $this->findRowEnd($tagPosEnd);
         if ($rowStart === false || $rowEnd === 7) {
             return false;
         }
@@ -241,12 +242,13 @@ class PHPWord_Template {
 
             //获取字符label位置
             $search = $this->lable($fieldLabel);
-            $tagPos = strpos($this->_documentXML, $search);
-            if (!$tagPos) continue;
+            $tagPosStart = strpos($this->_documentXML, $search);
+            $tagPosEnd = strrpos($this->_documentXML, $search);
+            if (!$tagPosStart || !$tagPosEnd) continue;
 
             //获取 fieldLabel 对应的开始-结束的位置
-            $rowStart = $this->findRowStart($tagPos);
-            $rowEnd = $this->findRowEnd($tagPos);
+            $rowStart = $this->findRowStart($tagPosStart);
+            $rowEnd = $this->findRowEnd($tagPosEnd);
             if ($rowStart === false || $rowEnd === 7) continue;
 
             //深度处理 - 对应的开始-结束的位置
